@@ -1,0 +1,13 @@
+
+[local]
+localhost ansible_connection=local
+
+
+[haproxy]
+184.94.253.76
+
+[webserver1]
+184.94.253.77
+
+[webserver2]
+184.94.253.78

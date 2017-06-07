@@ -1,0 +1,10 @@
+secgroups: default
+image: CentOS-7-x86_64-GenericCloud-1508-mc  
+flavor: m1.large
+keypair: haproxykey
+net_name: tdub-priv1
+ansible_user: cloud
+webserver1: webserver1
+webserver2: webserver2
+haproxy: haproxy
+

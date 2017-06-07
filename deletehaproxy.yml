@@ -1,0 +1,34 @@
+- name: File=delete-haproxy.yml Cleanup
+  hosts: local
+  user: cloud
+  sudo: True 
+  vars_files:
+    - vars.yaml
+  tasks:
+
+     - name: Delete webserver1
+       os_server:
+         state: absent
+         name: "{{webserver1}}"  
+
+     - name: Delete webserver2
+       os_server:
+         state: absent
+         name: "{{webserver2}}"
+
+     - name: Delete haproxy
+       os_server:
+         state: absent
+         name: "{{haproxy}}"      
+      
+- name: Copy files
+  hosts: local
+  user: cloud
+  sudo: True
+  vars_files:
+    - vars.yaml
+  tasks:
+    - name: copy haproxy.cfg
+      shell: cp oldhaproxy.cfg haproxy.cfg
+    - name: copy knownhosts
+      shell: cp ~/.ssh/oldknown_hosts ~/.ssh/known_hosts

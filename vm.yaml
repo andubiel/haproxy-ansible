@@ -1,0 +1,88 @@
+---
+
+- name: Create a HA-Proxy + Webserver deployment
+  hosts: localhost
+  vars_files:
+    - vars.yaml
+  tasks:
+      
+  - name: test for presence of local keypair
+    stat: path="id_rsa_key"
+    register: testenv_keypair_local
+  
+  - name: delete remote keypair
+    os_keypair:
+      name: "{{keypair}}"
+      state: absent
+    when: not testenv_keypair_local.stat.exists
+  
+  - name: create the keypair
+    os_keypair:
+      name: "{{keypair}}"
+      state: present
+    register: testenv_keypair
+  
+  - name: persist the keypair
+    copy:
+      dest: "./id_rsa_key"
+      content: "{{ testenv_keypair.key.private_key }}"
+      mode: 0600
+    when: testenv_keypair.changed
+
+  - name: launch an instance
+    os_server:
+      name: "{{ item }}"
+      state: present
+      auth:
+        auth_url: "{{ lookup('env', 'OS_AUTH_URL') }}"
+        username: "{{ lookup('env', 'OS_USERNAME') }}"
+        password: "{{ lookup('env', 'OS_PASSWORD') }}"
+        project_name: "{{ lookup('env', 'OS_TENANT_NAME') }}"
+      image: "{{image}}"
+      security_groups: "{{secgroups}}"
+      flavor: "{{flavor}}"
+      #key_name: "{{key_name}}"
+      key_name: "{{keypair}}"
+      nics:
+        - net-name: "{{net_name}}"
+      wait: yes
+    register: osinstance
+    with_items:
+      - "{{haproxy}}"
+      - "{{webserver1}}"
+      - "{{webserver2}}"
+  
+  - name: Wait 5 seconds
+    pause: seconds=5
+    when: osinstance.changed
+
+  - name: Display Network for Webserver1
+    shell: nova show "{{webserver1}}" | awk 'FNR == 37 {print $5}' | gawk 'BEGIN { RS=",[\t\n\v\f\r ]*[\n\r]+" } { printf("%s%s", nl, $0) ; nl=RT } END { sub(/^\,/, "", nl); printf("%s", nl) }'
+    register: shell_output2
+  - debug: msg="{{ shell_output2.stdout }}"
+  - lineinfile:
+       dest: haproxy.cfg
+       line: ' server  {{webserver1}} {{ shell_output2.stdout }}:80 maxconn 254'
+       insertafter: EOF
+
+  - name: Display Network for Webserver2
+    shell: nova show "{{webserver2}}" | awk 'FNR == 37 {print $5}' | gawk 'BEGIN { RS=",[\t\n\v\f\r ]*[\n\r]+" } { printf("%s%s", nl, $0) ; nl=RT } END { sub(/^\,/, "", nl); printf("%s", nl) }'
+    register: shell_output3 
+  - debug: msg="{{ shell_output3.stdout }}"
+  - lineinfile:
+       dest: haproxy.cfg
+       line: ' server  {{webserver2}} {{ shell_output3.stdout }}:80 maxconn 254'
+       insertafter: EOF
+
+  
+  - name: Add Floating IP to HAproxy based on  hosts file for Ansible
+    shell: openstack server add floating ip "{{haproxy}}" 184.94.253.76
+    ignore_errors: yes
+
+  - name: Add Floating IP to Webserver1  based on  hosts file for Ansible
+    shell: openstack server add floating ip "{{webserver1}}"  184.94.253.77
+    ignore_errors: yes
+
+  - name: Add Floating IP to Webserver2  based on  hosts file for Ansible
+    shell: openstack server add floating ip "{{webserver2}}" 184.94.253.78
+    ignore_errors: yes

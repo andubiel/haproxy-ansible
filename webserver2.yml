@@ -1,0 +1,18 @@
+- name: File=webserver1.yml Update Centos and Install apache web server
+  hosts: webserver2
+  user: cloud
+  sudo: True 
+  vars_files:
+    - vars.yaml
+  tasks:
+   #  - name: update centos
+   #    shell: sudo yum -y update
+     - name: Install apache web server
+       shell: sudo yum -y install httpd
+     - name: start httpd
+       shell: service httpd start
+     - name: copy web page
+       copy: src=index2.html dest=/var/www/html/index.html
+     - name: copy Screenshot1.png
+       copy: src=Screenshot2.png dest=/var/www/html/Screenshot2.png
+

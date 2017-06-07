@@ -1,0 +1,1 @@
+ansible-playbook -i hosts vm.yaml && ansible-playbook -i hosts --private-key id_rsa_key  webserver1.yml && ansible-playbook -i hosts --private-key id_rsa_key webserver2.yml && ansible-playbook -i hosts --private-key id_rsa_key haproxy.yml 
